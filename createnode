@@ -1,0 +1,35 @@
+from graphviz import Digraph
+
+dot = Digraph(comment='Follow Waypoints System')
+# dot.attr(rankdir='LR')         # 왼쪽 → 오른쪽 방향
+dot.attr(nodesep='1.0')        # 가로 간격 넓힘
+dot.attr(ranksep='1.0')        # 세로 간격 넓힘
+
+
+# 나머지 노드 정의와 연결...
+
+# 전체 시스템
+dot.node('Main', 'Main()', shape='box', style='filled', fillcolor='lightgrey')
+
+# 클래스
+dot.node('Controller', 'class NamespacedRobotController()', shape='box', style='filled', fillcolor='lightblue')
+
+# 주요 기능 노드
+dot.node('MQTT', '주행 신호 수신', shape='ellipse')
+dot.node('Callback', '구역 자율 주행', shape='ellipse')
+dot.node('NavToWP', '전체 자율 수행', shape='ellipse')
+# dot.node('Run', 'navigate_to_waypoint()', shape='ellipse')
+
+# 흐름 연결
+dot.edge('Main', 'Controller', label=' ')
+dot.edge('Controller', 'MQTT', label='')
+# dot.edge('Run', 'NavToWP', label=' 1 cycle done')
+dot.edge('MQTT', 'Callback', label=' ')
+# dot.edge('NavToWP', 'Run', label=' if other robot human detect')
+dot.edge('Callback', 'NavToWP', label=' ',  len='2', weight='0.1')
+dot.edge('NavToWP', 'Callback', label=' ',  len='2', weight='0.1')
+# dot.edge('Run', 'stop', label=' if app select stop button')
+
+# 렌더링
+dot.render('follow_waypoints_diagram', format='png', cleanup=False)
+print("✅ 이미지 생성 완료: follow_waypoints_diagram.png")
