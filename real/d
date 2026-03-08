@@ -1,0 +1,44 @@
+import paho.mqtt.client as mqtt_client
+import json
+import random
+
+# MQTT 설정
+broker = 'p021f2cb.ala.asia-southeast1.emqxsl.com'
+port = 8883
+username = 'Rokey'
+password = '1234567'
+mqtt_topic = "tb4"
+client_id = f'python-sub-mqtt-{random.randint(0, 100)}'
+
+def connect_mqtt():
+    def on_connect(client, userdata, flags, rc, properties=None):  # properties 인자 포함
+        if rc == 0:
+            print("✅ Connected to MQTT Broker!")
+            client.subscribe(mqtt_topic)
+            print(f"📡 Subscribed to topic: `{mqtt_topic}`")
+        else:
+            print(f"❌ Failed to connect, return code {rc}")
+
+    # callback_api_version VERSION2로 설정
+    client = mqtt_client.Client(client_id=client_id, callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
+    client.tls_set()  # TLS 설정
+    client.username_pw_set(username, password)
+    client.on_connect = on_connect
+    return client
+
+def on_message(client, userdata, msg):
+    try:
+        payload = msg.payload.decode()
+        data = json.loads(payload)
+        print(f"📩 Message received on `{msg.topic}`: {data}")
+    except Exception as e:
+        print(f"⚠️ Failed to process message: {e}")
+
+def run():
+    client = connect_mqtt()
+    client.on_message = on_message
+    client.connect(broker, port)
+    client.loop_forever()
+
+if __name__ == '__main__':
+    run()

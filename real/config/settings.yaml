@@ -1,0 +1,310 @@
+# MQTT + InfluxDB 실시간 대시보드 설정
+# 실제 운영 환경 정보 - Rokey 프로젝트
+
+# ========================================
+# MQTT 브로커 설정 (EMQX Cloud)
+# ========================================
+mqtt:
+  # 연결 정보
+  broker: "p021f2cb.ala.asia-southeast1.emqxsl.com"
+  port: 8883                    # MQTT over TLS/SSL
+  websocket_port: 8084          # WebSocket over TLS/SSL (웹용)
+  
+  # 인증 정보
+  username: "Rokey"
+  password: "1234567"
+  
+  # 보안 설정
+  use_tls: true
+  tls_insecure: false           # 인증서 검증 여부
+  
+  # 클라이언트 설정
+  client_id: "mqtt_dashboard_rokey"
+  clean_session: true
+  keepalive: 60                 # 연결 유지 시간 (초)
+  
+  # 재연결 설정
+  reconnect_delay_min: 1        # 최소 재연결 대기시간 (초)
+  reconnect_delay_max: 30       # 최대 재연결 대기시간 (초)
+  max_reconnect_attempts: 50    # 최대 재연결 시도 횟수
+  
+  
+  # 구독할 토픽 패턴들
+  topics:
+    # ─────────── 시스템 상태 및 진단 ───────────
+    - "robot1/diagnostics"
+    - "robot1/battery_state"
+    - "robot1/imu"
+    - "robot1/wheel_status"
+    - "robot1/ip"
+
+    # ─────────── 위치 추정 및 네비게이션 ───────────
+    - "robot1/amcl_pose"
+    - "robot1/odom"
+    - "robot1/initialpose"
+    - "robot1/particle_cloud"
+    - "robot1/goal_pose"
+    - "robot1/local_plan"
+    - "robot1/plan"
+    - "robot1/plan_smoothed"
+    - "robot1/transformed_global_plan"
+    - "robot1/received_global_plan"
+    - "robot1/speed_limit"
+
+    # ─────────── SLAM 및 맵 관련 ───────────
+    - "robot1/map"
+    - "robot1/map_updates"
+    - "robot1/scan"
+    - "robot1/marker"
+
+    # ─────────── Costmap 데이터 (로컬/글로벌) ───────────
+    - "robot1/global_costmap/costmap"
+    - "robot1/global_costmap/costmap_updates"
+    - "robot1/global_costmap/footprint"
+    - "robot1/global_costmap/voxel_marked_cloud"
+    - "robot1/global_costmap/published_footprint"
+
+    - "robot1/local_costmap/costmap"
+    - "robot1/local_costmap/costmap_updates"
+    - "robot1/local_costmap/footprint"
+    - "robot1/local_costmap/voxel_marked_cloud"
+    - "robot1/local_costmap/voxel_grid"
+    - "robot1/local_costmap/published_footprint"
+
+    # ─────────── 카메라 및 센서 (OAK-D) ───────────
+    - "robot1/oakd/rgb/image_raw/compressed"
+    - "robot1/oakd/stereo/image_raw/compressed"
+    - "robot1/oakd/rgb/preview/image_raw"
+    - "robot1/oakd/stereo/image_raw"
+    - "robot1/mobile_base/sensors/bumper_pointcloud"
+
+    # ─────────── 제어/명령 관련 ───────────
+    - "robot1/cmd_vel"
+    - "robot1/cmd_vel_nav"
+    - "robot1/cmd_vel_teleop"
+    - "robot1/cmd_audio"
+    - "robot1/cmd_lightring"
+    - "robot1/joy"
+    - "robot1/joy/set_feedback"
+    - "robot1/interface_buttons"
+    - "robot1/hmi/buttons"
+    - "robot1/hmi/led"
+    - "robot1/hmi/display"
+    - "robot1/hmi/display/message"
+
+    # ─────────── 시스템 메타/변환 등 ───────────
+    - "robot1/tf"
+    - "robot1/tf_static"
+    - "robot1/robot_description"
+
+    # ─────────── Waypoints 및 행동 제어 ───────────
+    - "robot1/waypoints"
+    - "robot1/preempt_teleop"
+
+    # ─────────── 필요시 전체 구독 ───────────
+    # - "robot1/#"  # 모든 토픽 포함, 위 항목에 없으면 일괄 구독 가능
+
+  # QoS 설정
+  default_qos: 1                # 0: At most once, 1: At least once, 2: Exactly once
+  
+
+
+  # 메시지 설정
+  max_payload_size: 1048576     # 1MB
+  message_retention: false       # 메시지 보관 여부
+
+# ========================================
+# InfluxDB 설정 (InfluxDB Cloud)
+# ========================================
+influxdb:
+  # 연결 정보
+  url: https://us-east-1-1.aws.cloud2.influxdata.com
+  
+  # 인증 정보
+  token: "lX_1reFAt0HAhHGK00ZI7tWYzUqBeeBa6iLgAtk-Syw-90Gi2sd-36Ml8uE_Lgx0kXDLKxEogFLmSjckc-LAGA=="
+  org: "rokey1234"
+  org_id: "2167da61d810d30e"
+  user_id: "aa0883b28621d6c9"
+  
+  # 버킷 설정
+  bucket: "ROKEY"
+  
+  # 성능 설정
+  batch_size: 1000              # 배치 쓰기 크기
+  flush_interval: 1000          # 플러시 간격 (밀리초)
+  retry_interval: 1000          # 재시도 간격 (밀리초)
+  jitter_interval: 100          # 지터 간격 (밀리초)
+  max_retries: 3                # 최대 재시도 횟수
+  
+  # 연결 설정
+  timeout: 30000                # 타임아웃 (밀리초)
+  verify_ssl: true              # SSL 인증서 검증
+  
+  # 데이터 보존 설정
+  precision: "ns"               # 타임스탬프 정밀도: ns, us, ms, s
+  
+  # 측정값 설정
+  default_measurement: "mqtt_message"
+  
+  # 태그 최적화
+  max_tag_value_length: 100     # 태그 값 최대 길이
+  max_field_value_length: 1000  # 필드 값 최대 길이
+
+# ========================================
+# 대시보드 웹 서버 설정
+# ========================================
+dashboard:
+  # 서버 설정
+  host: "localhost"
+  port: 3000
+  
+  # UI 업데이트 설정
+  refresh_interval: 2000        # 자동 새로고침 간격 (밀리초)
+  max_log_entries: 500          # 로그 패널 최대 항목 수
+  chart_data_points: 100        # 차트 최대 데이터 포인트
+  
+  # 데이터 조회 설정
+  default_time_range: "1h"      # 기본 시간 범위: 1m, 5m, 15m, 1h, 6h, 24h
+  max_time_range: "7d"          # 최대 시간 범위
+  
+  # 차트 설정
+  chart_colors:
+    - "#8884d8"                 # 주 색상
+    - "#82ca9d"                 # 보조 색상 1
+    - "#ffc658"                 # 보조 색상 2
+    - "#ff7c7c"                 # 보조 색상 3
+    - "#8dd1e1"                 # 보조 색상 4
+  
+  # 알림 설정
+  enable_notifications: true
+  notification_sound: false
+
+# ========================================
+# 로깅 설정
+# ========================================
+logging:
+  # 로그 레벨: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # 파일 로깅
+  file: "logs/mqtt-bridge.log"
+  max_file_size: "100MB"         # 로그 파일 최대 크기
+  backup_count: 5               # 백업 파일 개수
+  
+  # 콘솔 로깅
+  console: true
+  console_level: "INFO"
+  
+  # 로그 포맷
+  format: "%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+  
+  # 특정 모듈 로그 레벨
+  modules:
+    paho.mqtt: "WARNING"        # MQTT 클라이언트 로그 줄이기
+    urllib3: "WARNING"          # HTTP 요청 로그 줄이기
+
+# ========================================
+# 시스템 설정
+# ========================================
+system:
+  # 시간대 설정
+  timezone: "Asia/Seoul"
+  
+  # 성능 설정
+  message_queue_size: 10000     # 메시지 큐 최대 크기
+  processing_threads: 2         # 처리 스레드 수
+  
+  # 메모리 관리
+  max_memory_usage: "1GB"       # 최대 메모리 사용량
+  gc_threshold: 0.8             # 가비지 컬렉션 임계값
+  
+  # 모니터링
+  stats_interval: 30            # 통계 출력 간격 (초)
+  health_check_interval: 60     # 헬스체크 간격 (초)
+  
+  # 데이터 정리
+  cleanup_old_data: true        # 오래된 데이터 정리 여부
+  data_retention_days: 30       # 데이터 보존 기간 (일)
+
+# ========================================
+# 데이터 처리 설정
+# ========================================
+data_processing:
+  # 메시지 파싱
+  parse_json: true              # JSON 자동 파싱
+  parse_numbers: true           # 숫자 자동 변환
+  parse_booleans: true          # 불린 자동 변환
+  
+  # 필드 정리
+  sanitize_field_names: true    # 필드명 정리 (특수문자 제거)
+  lowercase_field_names: true   # 필드명 소문자 변환
+  
+  # 데이터 검증
+  validate_timestamps: true     # 타임스탬프 검증
+  reject_future_data: true      # 미래 시간 데이터 거부
+  max_timestamp_skew: 3600      # 최대 시간 차이 (초)
+  
+  # 중복 제거
+  deduplicate_messages: false   # 중복 메시지 제거
+  deduplicate_window: 5         # 중복 검사 시간 창 (초)
+
+# ========================================
+# 보안 설정
+# ========================================
+security:
+  # API 보안
+  enable_cors: true             # CORS 활성화
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+  
+  # 데이터 보안
+  mask_sensitive_data: false    # 민감한 데이터 마스킹
+  sensitive_topics:             # 민감한 토픽 패턴
+    - "password/*"
+    - "secret/*"
+    - "private/*"
+  
+  # 접속 제한
+  max_connections: 100          # 최대 동시 연결 수
+  rate_limit: 1000              # 초당 최대 요청 수
+
+# ========================================
+# 알림 설정 (향후 확장용)
+# ========================================
+alerts:
+  enabled: false
+  
+  # 시스템 알림
+  connection_lost: true         # 연결 끊김 알림
+  high_memory_usage: true       # 높은 메모리 사용량 알림
+  processing_delay: true        # 처리 지연 알림
+  
+  # 데이터 알림
+  no_data_timeout: 300          # 데이터 없음 알림 시간 (초)
+  threshold_alerts: []          # 임계값 알림 (추후 설정)
+
+# ========================================
+# 개발/테스트 설정
+# ========================================
+development:
+  debug_mode: false             # 디버그 모드
+  mock_data: false              # 모의 데이터 생성
+  test_topics:                  # 테스트용 토픽
+    - "test/ping"
+    - "test/counter"
+    - "test/random"
+  
+  # 성능 테스트
+  simulate_load: false          # 부하 시뮬레이션
+  load_test_messages_per_sec: 10
+  
+  # 디버깅 도구
+  enable_profiling: false       # 프로파일링 활성화
+  dump_raw_messages: false      # 원시 메시지 덤프
+# ========================================
+# 필터 모드
+# ========================================
+filtering:
+  mode: smart  # strict | smart | off
